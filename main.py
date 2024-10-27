@@ -7,15 +7,21 @@ def main():
     model_path = 'models/best.pt'
     stub_path = 'stubs/track_stubs.pkl'
 
+    tracker = Tracker(model_path)
+
     # Read video
     video_frames = read_video(video_input_path)
 
-    tracker = Tracker(model_path)
-
-    tracker.get_object_tracks(video_frames, read_from_stub=True, stub_path=stub_path)
-
+    tracks = tracker.get_object_tracks(video_frames,
+                                       read_from_stub=True,
+                                       stub_path=stub_path)
+    
+    # Draw Output
+    ## Draw object Tracks
+    output_video_frames = tracker.draw_annotations(video_frames, tracks)
+    
     # Save video
-    save_video(video_frames, video_output_path)
+    save_video(output_video_frames, video_output_path)
 
 if __name__ == '__main__':
     main()

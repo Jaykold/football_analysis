@@ -1,5 +1,4 @@
-import os
-import pickle
+import numpy as np
 from ultralytics import YOLO
 import supervision as sv
 import cv2
@@ -17,6 +16,49 @@ class Tracker:
             detections_batch = self.model.predict(batch, conf=0.1)
             detections.extend(detections_batch)
         return detections
+    
+    def draw_rectangle(self, frame, bbox, color, center_x, track_id):
+        y2 = int(bbox[3])
+        rectangle_width = 40
+        rectangle_height = 20
+        x1_rect = center_x - rectangle_width//2
+        x2_rect = center_x + rectangle_width//2
+        y1_rect = (y2 - rectangle_height//2)+15
+        y2_rect = (y2 + rectangle_height//2)+15
+
+        if track_id is not None:
+            cv2.rectangle(frame,
+                        (int(x1_rect), int(y1_rect)),
+                        (int(x2_rect), int(y2_rect)),
+                        color,
+                        cv2.FILLED)
+        
+            x1_text = x1_rect + 11
+            if track_id > 99:
+                x1_text -= 9
+
+            cv2.putText(frame,
+                        str(track_id),
+                        (int(x1_text),
+                         int(y1_rect)+14),
+                         cv2.FONT_HERSHEY_SIMPLEX,
+                         0.5,
+                         (0, 0, 0),
+                         2)
+    
+    def draw_triangle(self, frame, bbox, color):
+        y = int(bbox[1])
+        center_x, _ = get_center_of_bbox(bbox)
+
+        triangle_points = np.array([
+            [center_x,y],
+            [center_x-10,y-20],
+            [center_x+10,y-20]
+        ])
+        cv2.drawContours(frame, [triangle_points], 0, color, cv2.FILLED)
+        cv2.drawContours(frame, [triangle_points], 0, (0,0,0), 2)
+
+        return frame
     
     def get_object_tracks(self, frames, read_from_stub=False, stub_path=None):
 
@@ -71,12 +113,12 @@ class Tracker:
                 if cls_id == cls_names_inv["ball"]:
                     tracks["ball"][frame_num][1] = {"bbox":bbox}
 
-        if stub_path:
+        if stub_path is not None:
             save_tracks_to_stubs(stub_path, tracks)
             
         return tracks
         
-    def draw_ellipse(self, frame, bbox, color, track_id):
+    def draw_ellipse(self, frame, bbox, color, track_id=None):
         y2 = int(bbox[3])
 
         center_x, _ = get_center_of_bbox(bbox)
@@ -91,8 +133,18 @@ class Tracker:
         thickness = 2
         line_type = cv2.LINE_4
 
-        cv2.ellipse(frame, center, axes, angle, start_angle, end_angle, colour, thickness, line_type)
-        #cv2.putText(frame, str(track_id), (int(x), int(y) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.ellipse(frame,
+                    center,
+                    axes,
+                    angle,
+                    start_angle,
+                    end_angle,
+                    colour,
+                    thickness,
+                    line_type)
+
+        self.draw_rectangle(frame, bbox, color, center_x, track_id)
+
         return frame
         
     def draw_annotations(self, video_frames, tracks):
@@ -113,6 +165,10 @@ class Tracker:
                 for track_id, referee_data in referee_dicts.items():
                     referee_bbox = referee_data["bbox"]
                     frame = self.draw_ellipse(frame, referee_bbox, (255, 165, 0), track_id)
+
+                for track_id, ball_data in ball_dicts.items():
+                    ball_bbox = ball_data["bbox"]
+                    frame = self.draw_triangle(frame, ball_bbox, (140, 178, 40))
 
                 output_video_frames.append(frame)
             else:

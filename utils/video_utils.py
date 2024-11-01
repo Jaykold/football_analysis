@@ -14,6 +14,9 @@ def read_video(video_path):
 
 
 def save_video(output_video_frames, output_video_path):
+    if not output_video_frames:  
+        print("Error: output_video_frames is empty. No video to save.")
+        return
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     fps = 24
     width = output_video_frames[0].shape[1]

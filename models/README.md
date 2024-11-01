@@ -1,1 +1,0 @@
-This link directs you to the [model]("https://drive.google.com/file/d/1-MEsne3fdM7OHt4px4rYHAMnXuGmTFhl/view?usp=sharing") used to predict objects in the football video frames
